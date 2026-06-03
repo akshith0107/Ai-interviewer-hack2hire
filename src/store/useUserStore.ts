@@ -6,11 +6,13 @@ interface UserProfile {
   email: string;
   target_role: string | null;
   phone_number?: string | null;
+  profile_image_url?: string | null;
   college?: string | null;
   degree?: string | null;
   graduation_year?: number | null;
   experience_level?: string | null;
   bio?: string | null;
+  created_at?: string | null;
 }
 
 interface UserState {
