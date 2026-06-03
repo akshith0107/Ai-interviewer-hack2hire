@@ -1,6 +1,5 @@
 
 
-https://github.com/user-attachments/assets/480a6091-1730-4436-b5cd-85f564c8eb0e
 
 <<<<<<< HEAD
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
