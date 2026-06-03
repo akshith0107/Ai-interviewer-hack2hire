@@ -6,7 +6,10 @@ from app.schemas.report import RecruiterReport, AggregatedScores, LLMReportData
 from app.services.state_manager import get_session
 from app.services.groq_service import analyze_text_to_json, get_evaluation_model
 
-def get_report(session_id: str, db: Session) -> RecruiterReport:
+def get_report(session_id: str, db: Session, user_id: str) -> RecruiterReport:
+    # First verify ownership
+    get_session(db, session_id, user_id)
+    
     report_db = db.query(Report).filter(Report.interview_id == session_id).first()
     if not report_db:
         raise HTTPException(status_code=404, detail="Report not found for this session.")
@@ -23,8 +26,8 @@ def get_report(session_id: str, db: Session) -> RecruiterReport:
         personalized_roadmap=report_db.roadmap or ""
     )
 
-async def generate_recruiter_report(session_id: str, db: Session) -> RecruiterReport:
-    state = get_session(db, session_id)
+async def generate_recruiter_report(session_id: str, db: Session, user_id: str) -> RecruiterReport:
+    state = get_session(db, session_id, user_id)
     
     avg_score = sum(state.score_history) / len(state.score_history) if state.score_history else 50
     

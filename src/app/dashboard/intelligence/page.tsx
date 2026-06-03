@@ -6,8 +6,9 @@ import {
   Brain, Download, Target, TrendingUp, AlertTriangle, 
   CheckCircle2, UserCircle, Briefcase, Map, Lightbulb, Loader2 
 } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export default function IntelligencePage() {
   const [data, setData] = useState<any>(null);
@@ -18,7 +19,7 @@ export default function IntelligencePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`${API_BASE}/intelligence/me`);
+        const res = await fetchWithAuth(`${API_BASE}/intelligence/me`);
         if (res.ok) {
           const json = await res.json();
           setData(json);

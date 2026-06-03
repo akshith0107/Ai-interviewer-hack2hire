@@ -5,8 +5,9 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { PremiumButton } from '@/components/ui/PremiumButton';
 import { Video, Plus, Loader2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { fetchWithAuth } from '@/lib/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export default function InterviewsPage() {
   const [operations, setOperations] = useState<any[]>([]);
@@ -15,7 +16,7 @@ export default function InterviewsPage() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await fetch(`${API_BASE}/analytics/history`);
+        const res = await fetchWithAuth(`${API_BASE}/analytics/history`);
         if (res.ok) {
           const data = await res.json();
           setOperations(data.history || []);

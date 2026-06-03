@@ -7,6 +7,7 @@ import { CompetencyRadarChart } from '@/components/dashboard/CompetencyRadarChar
 import { Share2, Download, CheckCircle2, Bot, Target, MinusCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { TrendingUp as TrendingUpIcon } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/api';
 
 export default function ResultsDashboardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -17,7 +18,7 @@ export default function ResultsDashboardPage({ params }: { params: Promise<{ id:
   useEffect(() => {
     const fetchReport = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/report/generate`, {
+        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/report/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session_id: id })

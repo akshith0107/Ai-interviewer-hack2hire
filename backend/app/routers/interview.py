@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.database.session import get_db
+from app.database.models import User
+from app.core.deps import get_current_user
 from app.schemas.interview import (
     StartInterviewRequest, StartInterviewResponse, 
     NextQuestionRequest, QuestionResponse, 
@@ -23,17 +25,16 @@ from app.services.decision_service import (
 router = APIRouter(prefix="/interview", tags=["Interview Engine"])
 
 @router.post("/start", response_model=StartInterviewResponse)
-async def start_interview(request: StartInterviewRequest, db: Session = Depends(get_db)):
+async def start_interview(request: StartInterviewRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
-        state = create_session(db, request)
+        state = create_session(db, request, current_user.id)
         return StartInterviewResponse(session_id=state.session_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/question", response_model=QuestionResponse)
-async def get_next_question(request: NextQuestionRequest, db: Session = Depends(get_db)):
-    state = get_session(db, request.session_id)
-    
+async def get_next_question(request: NextQuestionRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    state = get_session(db, request.session_id, current_user.id)
     try:
         question_data = await generate_next_question(state)
         save_question(db, request.session_id, question_data.question_text, question_data.difficulty, question_data.question_type)
@@ -42,9 +43,8 @@ async def get_next_question(request: NextQuestionRequest, db: Session = Depends(
         raise HTTPException(status_code=500, detail=f"Failed to generate question: {str(e)}")
 
 @router.post("/followup", response_model=QuestionResponse)
-async def get_followup(request: FollowUpRequest, db: Session = Depends(get_db)):
-    state = get_session(db, request.session_id)
-    
+async def get_followup(request: FollowUpRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    state = get_session(db, request.session_id, current_user.id)
     try:
         # First save the answer to the DB that triggered this followup
         last_q = state.history[-1].question if state.history else ""
@@ -58,8 +58,11 @@ async def get_followup(request: FollowUpRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to generate follow-up: {str(e)}")
 
 @router.post("/evaluate", response_model=EvaluationResponse)
-async def evaluate_answer(request: EvaluateRequest, db: Session = Depends(get_db)):
+async def evaluate_answer(request: EvaluateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
+        # Validate ownership
+        get_session(db, request.session_id, current_user.id)
+        
         # Save the answer first
         save_answer(db, request.session_id, request.question_text, request.candidate_answer, request.time_taken_seconds)
         
@@ -77,8 +80,8 @@ async def evaluate_answer(request: EvaluateRequest, db: Session = Depends(get_db
         raise HTTPException(status_code=500, detail=f"Evaluation failed: {str(e)}")
 
 @router.post("/decision", response_model=DecisionResponse)
-async def process_decision(request: DecisionRequest, db: Session = Depends(get_db)):
-    state = get_session(db, request.session_id)
+async def process_decision(request: DecisionRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    state = get_session(db, request.session_id, current_user.id)
     
     if state.status == "terminated" or state.status == "completed":
         return DecisionResponse(
@@ -127,8 +130,8 @@ async def process_decision(request: DecisionRequest, db: Session = Depends(get_d
     )
 
 @router.post("/terminate")
-async def terminate_interview(request: TerminateRequest, db: Session = Depends(get_db)):
-    state = get_session(db, request.session_id)
+async def terminate_interview(request: TerminateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    state = get_session(db, request.session_id, current_user.id)
     state.status = "terminated"
     update_session(db, state)
     return {"message": "Interview terminated.", "reason": request.reason}

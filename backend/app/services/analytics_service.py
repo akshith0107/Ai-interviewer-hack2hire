@@ -12,9 +12,9 @@ from app.schemas.analytics import (
 )
 from app.services.groq_service import analyze_text_to_json, get_evaluation_model
 
-def get_analytics_overview(db: Session) -> AnalyticsOverviewResponse:
+def get_analytics_overview(db: Session, user_id: str) -> AnalyticsOverviewResponse:
     # 1. Total Interviews
-    total_interviews = db.query(Interview).filter(Interview.status == "COMPLETED").count()
+    total_interviews = db.query(Interview).filter(Interview.status == "COMPLETED", Interview.user_id == user_id).count()
     if total_interviews == 0:
         return AnalyticsOverviewResponse(
             readiness_score=0,
@@ -25,10 +25,10 @@ def get_analytics_overview(db: Session) -> AnalyticsOverviewResponse:
         )
     
     # 2. Average Readiness Score
-    avg_readiness = db.query(func.avg(Report.readiness_score)).scalar() or 0
+    avg_readiness = db.query(func.avg(Report.readiness_score)).join(Interview).filter(Interview.user_id == user_id).scalar() or 0
     
     # 3. Average Score
-    avg_overall = db.query(func.avg(Evaluation.overall_score)).scalar() or 0
+    avg_overall = db.query(func.avg(Evaluation.overall_score)).join(Answer).join(Question).join(Interview).filter(Interview.user_id == user_id).scalar() or 0
     
     # 4. Strongest / Weakest Skills
     # Group by question.skill_area and average evaluation.overall_score
@@ -39,6 +39,8 @@ def get_analytics_overview(db: Session) -> AnalyticsOverviewResponse:
         )
         .join(Answer, Answer.question_id == Question.id)
         .join(Evaluation, Evaluation.answer_id == Answer.id)
+        .join(Interview, Interview.id == Question.interview_id)
+        .filter(Interview.user_id == user_id)
         .group_by(Question.skill_area)
         .all()
     )
@@ -61,10 +63,11 @@ def get_analytics_overview(db: Session) -> AnalyticsOverviewResponse:
         weakest_skill=weakest_skill
     )
 
-def get_analytics_trends(db: Session) -> AnalyticsTrendsResponse:
+def get_analytics_trends(db: Session, user_id: str) -> AnalyticsTrendsResponse:
     reports = (
         db.query(Report, Interview.started_at, Interview.jd_id)
         .join(Interview, Interview.id == Report.interview_id)
+        .filter(Interview.user_id == user_id)
         .order_by(Interview.started_at.asc())
         .all()
     )
@@ -84,7 +87,7 @@ def get_analytics_trends(db: Session) -> AnalyticsTrendsResponse:
         
     return AnalyticsTrendsResponse(history=history)
 
-def get_analytics_skills(db: Session) -> AnalyticsSkillsResponse:
+def get_analytics_skills(db: Session, user_id: str) -> AnalyticsSkillsResponse:
     evals = db.query(
         func.avg(Evaluation.accuracy).label("technical"),
         func.avg(Evaluation.communication).label("communication"),
@@ -92,7 +95,7 @@ def get_analytics_skills(db: Session) -> AnalyticsSkillsResponse:
         func.avg(Evaluation.depth).label("system_design"),
         func.avg(Evaluation.time_efficiency).label("problem_solving"),
         func.avg(Evaluation.clarity).label("confidence")
-    ).first()
+    ).join(Answer).join(Question).join(Interview).filter(Interview.user_id == user_id).first()
     
     if not evals or evals.technical is None:
         return AnalyticsSkillsResponse(
@@ -109,7 +112,7 @@ def get_analytics_skills(db: Session) -> AnalyticsSkillsResponse:
         confidence=int(evals.confidence or 0)
     )
 
-def get_analytics_difficulty(db: Session) -> dict: # Returning dict to be wrapped by Pydantic
+def get_analytics_difficulty(db: Session, user_id: str) -> dict: # Returning dict to be wrapped by Pydantic
     difficulties = (
         db.query(
             Question.difficulty,
@@ -117,6 +120,8 @@ def get_analytics_difficulty(db: Session) -> dict: # Returning dict to be wrappe
         )
         .join(Answer, Answer.question_id == Question.id)
         .join(Evaluation, Evaluation.answer_id == Answer.id)
+        .join(Interview, Interview.id == Question.interview_id)
+        .filter(Interview.user_id == user_id)
         .group_by(Question.difficulty)
         .all()
     )
@@ -128,8 +133,8 @@ def get_analytics_difficulty(db: Session) -> dict: # Returning dict to be wrappe
             
     return res
 
-async def get_analytics_insights(db: Session) -> AnalyticsInsightsResponse:
-    reports = db.query(Report).all()
+async def get_analytics_insights(db: Session, user_id: str) -> AnalyticsInsightsResponse:
+    reports = db.query(Report).join(Interview).filter(Interview.user_id == user_id).all()
     if not reports:
         return AnalyticsInsightsResponse(
             top_strength="N/A",
@@ -169,9 +174,10 @@ async def get_analytics_insights(db: Session) -> AnalyticsInsightsResponse:
             projected_readiness="Needs more data"
         )
 
-def get_analytics_history(db: Session) -> AnalyticsHistoryResponse:
+def get_analytics_history(db: Session, user_id: str) -> AnalyticsHistoryResponse:
     interviews = (
         db.query(Interview)
+        .filter(Interview.user_id == user_id)
         .order_by(Interview.started_at.desc())
         .limit(10)
         .all()

@@ -15,7 +15,7 @@ export default function SignupPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setErrorMsg('Please fill in all fields.');
@@ -25,9 +25,43 @@ export default function SignupPage() {
     setErrorMsg('');
     setIsLoading(true);
     
-    setTimeout(() => {
-      router.push('/verify-email');
-    }, 1000);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          full_name: email.split('@')[0], // fallback
+        }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || 'Signup failed');
+      }
+      
+      // Since it's MVP, immediately login and set token, or redirect to login.
+      // We will just redirect to login with a success message, but wait, 
+      // let's just log them in directly by hitting the login API too.
+      const loginRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ username: email, password: password }),
+      });
+      
+      if (loginRes.ok) {
+        const data = await loginRes.json();
+        localStorage.setItem('token', data.access_token);
+        router.push('/dashboard');
+      } else {
+        router.push('/login');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'An error occurred during signup.');
+    } finally {
+      setIsLoading(false);
+    }
   };
   return (
     <div className="min-h-screen bg-black flex flex-col relative overflow-hidden">

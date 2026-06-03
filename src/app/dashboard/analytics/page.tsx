@@ -8,8 +8,9 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { Lightbulb, History, TrendingUp, Calendar, Target, Brain, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 interface Overview {
   readiness_score: number;
@@ -69,12 +70,12 @@ export default function AnalyticsPage() {
     const fetchData = async () => {
       try {
         const [overviewRes, trendsRes, skillsRes, diffRes, insightsRes, historyRes] = await Promise.all([
-          fetch(`${API_BASE}/analytics/overview`),
-          fetch(`${API_BASE}/analytics/trends`),
-          fetch(`${API_BASE}/analytics/skills`),
-          fetch(`${API_BASE}/analytics/difficulty`),
-          fetch(`${API_BASE}/analytics/insights`),
-          fetch(`${API_BASE}/analytics/history`)
+          fetchWithAuth(`${API_BASE}/analytics/overview`),
+          fetchWithAuth(`${API_BASE}/analytics/trends`),
+          fetchWithAuth(`${API_BASE}/analytics/skills`),
+          fetchWithAuth(`${API_BASE}/analytics/difficulty`),
+          fetchWithAuth(`${API_BASE}/analytics/insights`),
+          fetchWithAuth(`${API_BASE}/analytics/history`)
         ]);
 
         const oData = await overviewRes.json();
@@ -175,7 +176,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         
         {/* Performance Trends */}
         <GlassCard className="p-6 xl:col-span-2">
@@ -221,7 +222,7 @@ export default function AnalyticsPage() {
         </GlassCard>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         
         {/* Difficulty Breakdown */}
         <GlassCard className="p-6">

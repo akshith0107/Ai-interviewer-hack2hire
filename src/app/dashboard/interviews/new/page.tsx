@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAnalysisStore } from '@/store/useAnalysisStore';
+import { fetchWithAuth } from '@/lib/api';
 
 export default function CreateInterviewPage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function CreateInterviewPage() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/resume/upload`, {
+      const uploadRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/resume/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -52,7 +53,7 @@ export default function CreateInterviewPage() {
       const uploadData = await uploadRes.json();
       const extractedText = uploadData.extracted_text;
 
-      const analysisRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/analysis/pre-interview`, {
+      const analysisRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/analysis/pre-interview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

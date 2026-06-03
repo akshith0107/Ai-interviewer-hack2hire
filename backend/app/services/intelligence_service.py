@@ -7,7 +7,7 @@ import json
 
 async def generate_intelligence_report(user_id: str, db: Session) -> IntelligenceResponse:
     # Get all interviews
-    interviews = db.query(Interview).filter(Interview.status == "COMPLETED").order_by(Interview.started_at.desc()).all()
+    interviews = db.query(Interview).filter(Interview.status == "COMPLETED", Interview.user_id == user_id).order_by(Interview.started_at.desc()).all()
     if not interviews:
         raise ValueError("No completed interviews found.")
         
@@ -21,6 +21,8 @@ async def generate_intelligence_report(user_id: str, db: Session) -> Intelligenc
         )
         .join(Answer, Answer.question_id == Question.id)
         .join(Evaluation, Evaluation.answer_id == Answer.id)
+        .join(Interview, Interview.id == Question.interview_id)
+        .filter(Interview.user_id == user_id)
         .group_by(Question.skill_area)
         .all()
     )
@@ -67,9 +69,9 @@ async def generate_intelligence_report(user_id: str, db: Session) -> Intelligenc
     
     # 3. Hiring Probability
     # Avg readiness + technical (accuracy) + communication
-    avg_readiness = float(db.query(func.avg(Report.readiness_score)).scalar() or 0)
-    avg_tech = float(db.query(func.avg(Evaluation.accuracy)).scalar() or 0)
-    avg_comm = float(db.query(func.avg(Evaluation.communication)).scalar() or 0)
+    avg_readiness = float(db.query(func.avg(Report.readiness_score)).join(Interview).filter(Interview.user_id == user_id).scalar() or 0)
+    avg_tech = float(db.query(func.avg(Evaluation.accuracy)).join(Answer).join(Question).join(Interview).filter(Interview.user_id == user_id).scalar() or 0)
+    avg_comm = float(db.query(func.avg(Evaluation.communication)).join(Answer).join(Question).join(Interview).filter(Interview.user_id == user_id).scalar() or 0)
     
     current_prob = int((avg_readiness * 0.5) + (avg_tech * 0.3) + (avg_comm * 0.2))
     projected_prob = min(100, current_prob + 16) # Assuming completion of roadmap
@@ -80,7 +82,7 @@ async def generate_intelligence_report(user_id: str, db: Session) -> Intelligenc
     )
     
     # 4. LLM Synthesis
-    reports = db.query(Report).order_by(Report.created_at.desc()).limit(3).all()
+    reports = db.query(Report).join(Interview).filter(Interview.user_id == user_id).order_by(Report.created_at.desc()).limit(3).all()
     report_texts = [f"Summary: {r.summary}\nWeaknesses: {r.weaknesses}" for r in reports]
     
     prompt = f"""

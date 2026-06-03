@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setErrorMsg('Please enter both email and password.');
@@ -29,10 +29,29 @@ export default function LoginPage() {
     setErrorMsg('');
     setIsLoading(true);
     
-    // Simulate network delay for loading state
-    setTimeout(() => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          username: email,
+          password: password,
+        }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || 'Login failed');
+      }
+      
+      const data = await res.json();
+      localStorage.setItem('token', data.access_token);
       router.push('/dashboard');
-    }, 1000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'An error occurred during login.');
+    } finally {
+      setIsLoading(false);
+    }
   };
   return (
     <div className="min-h-screen bg-black flex flex-col relative overflow-hidden">

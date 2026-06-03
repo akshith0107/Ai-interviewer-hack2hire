@@ -7,8 +7,9 @@ import { PremiumButton } from '@/components/ui/PremiumButton';
 import { BookOpen, Activity, Trophy, Zap, TrendingUp, CircleDot, Video, BrainCircuit, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { fetchWithAuth } from '@/lib/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -60,10 +61,10 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
       try {
         const [overviewRes, perfRes, intelRes, recentRes] = await Promise.all([
-          fetch(`${API_BASE}/dashboard/overview`),
-          fetch(`${API_BASE}/dashboard/performance`),
-          fetch(`${API_BASE}/dashboard/intelligence`),
-          fetch(`${API_BASE}/dashboard/recent`)
+          fetchWithAuth(`${API_BASE}/dashboard/overview`),
+          fetchWithAuth(`${API_BASE}/dashboard/performance`),
+          fetchWithAuth(`${API_BASE}/dashboard/intelligence`),
+          fetchWithAuth(`${API_BASE}/dashboard/recent`)
         ]);
 
         const oData = await overviewRes.json();

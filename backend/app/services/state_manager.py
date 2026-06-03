@@ -7,10 +7,12 @@ from app.schemas.interview import InterviewState, InterviewContext, StartIntervi
 from app.schemas.resume import CandidateProfile
 from app.schemas.jd import JDAnalysis
 
-def get_session(db: Session, session_id: str) -> InterviewState:
+def get_session(db: Session, session_id: str, user_id: str = None) -> InterviewState:
     interview_db = db.query(models.Interview).filter(models.Interview.id == session_id).first()
     if not interview_db:
         raise HTTPException(status_code=404, detail="Interview session not found.")
+    if user_id and interview_db.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this interview.")
     
     resume_db = interview_db.resume
     jd_db = interview_db.jd
@@ -64,18 +66,15 @@ def get_session(db: Session, session_id: str) -> InterviewState:
     )
     return state
 
-def create_session(db: Session, request: StartInterviewRequest) -> InterviewState:
+def create_session(db: Session, request: StartInterviewRequest, user_id: str) -> InterviewState:
     session_id = str(uuid.uuid4())
-    
-    user = models.User(id=str(uuid.uuid4()), name="Anonymous")
-    db.add(user)
     
     resume_id = None
     if request.candidate_profile:
         resume_id = str(uuid.uuid4())
         resume = models.Resume(
             id=resume_id,
-            user_id=user.id,
+            user_id=user_id,
             skills_json={"skills": request.candidate_profile.skills, "experience_years": request.candidate_profile.experience_years, "education": request.candidate_profile.education},
             summary=request.candidate_profile.summary
         )
@@ -86,7 +85,7 @@ def create_session(db: Session, request: StartInterviewRequest) -> InterviewStat
         jd_id = str(uuid.uuid4())
         jd = models.JobDescription(
             id=jd_id,
-            user_id=user.id,
+            user_id=user_id,
             role=request.jd_analysis.role,
             required_skills={"required_skills": request.jd_analysis.required_skills},
             nice_to_have_skills={"nice_to_have_skills": request.jd_analysis.nice_to_have_skills},
@@ -96,7 +95,7 @@ def create_session(db: Session, request: StartInterviewRequest) -> InterviewStat
         
     interview = models.Interview(
         id=session_id,
-        user_id=user.id,
+        user_id=user_id,
         resume_id=resume_id,
         jd_id=jd_id,
         difficulty=request.starting_difficulty,

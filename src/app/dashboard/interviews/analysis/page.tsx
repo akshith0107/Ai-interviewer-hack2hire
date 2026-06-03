@@ -7,6 +7,7 @@ import { Target, CheckCircle2, XCircle, ArrowRight, Video, FileText } from 'luci
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { fetchWithAuth } from '@/lib/api';
 
 export default function ResumeAnalysisPage() {
   const analysis = useAnalysisStore(state => state.analysisResult);
@@ -16,7 +17,7 @@ export default function ResumeAnalysisPage() {
   const handleStartInterview = async () => {
     setIsStarting(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/interview/start`, {
+      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/interview/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

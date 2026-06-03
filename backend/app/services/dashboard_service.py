@@ -14,9 +14,9 @@ from app.schemas.dashboard import (
 )
 from app.services.groq_service import analyze_text_to_json, get_evaluation_model
 
-def get_dashboard_overview(db: Session) -> DashboardOverviewResponse:
+def get_dashboard_overview(db: Session, user_id: str) -> DashboardOverviewResponse:
     # 1. Total Interviews
-    interviews_taken = db.query(Interview).filter(Interview.status == "COMPLETED").count()
+    interviews_taken = db.query(Interview).filter(Interview.status == "COMPLETED", Interview.user_id == user_id).count()
     if interviews_taken == 0:
         return DashboardOverviewResponse(
             interviews_taken=0, average_score=0, best_score=0, readiness_index=0,
@@ -24,29 +24,29 @@ def get_dashboard_overview(db: Session) -> DashboardOverviewResponse:
         )
     
     # 2. Average Score
-    avg_score = float(db.query(func.avg(Report.readiness_score)).scalar() or 0)
+    avg_score = float(db.query(func.avg(Report.readiness_score)).join(Interview).filter(Interview.user_id == user_id).scalar() or 0)
     
     # 3. Best Score
-    best_score = float(db.query(func.max(Report.readiness_score)).scalar() or 0)
+    best_score = float(db.query(func.max(Report.readiness_score)).join(Interview).filter(Interview.user_id == user_id).scalar() or 0)
     
     # 4. Readiness Index (40% Tech, 20% Comm, 20% Prob, 20% Behav)
-    tech = float(db.query(func.avg(Evaluation.accuracy)).scalar() or 0)
-    comm = float(db.query(func.avg(Evaluation.communication)).scalar() or 0)
-    prob = float(db.query(func.avg(Evaluation.time_efficiency)).scalar() or 0)
-    behav = float(db.query(func.avg(Evaluation.relevance)).scalar() or 0)
+    tech = float(db.query(func.avg(Evaluation.accuracy)).join(Answer).join(Question).join(Interview).filter(Interview.user_id == user_id).scalar() or 0)
+    comm = float(db.query(func.avg(Evaluation.communication)).join(Answer).join(Question).join(Interview).filter(Interview.user_id == user_id).scalar() or 0)
+    prob = float(db.query(func.avg(Evaluation.time_efficiency)).join(Answer).join(Question).join(Interview).filter(Interview.user_id == user_id).scalar() or 0)
+    behav = float(db.query(func.avg(Evaluation.relevance)).join(Answer).join(Question).join(Interview).filter(Interview.user_id == user_id).scalar() or 0)
     readiness_index = int((tech * 0.4) + (comm * 0.2) + (prob * 0.2) + (behav * 0.2))
     
     # Quick Stats
     # Avg Duration
-    avg_dur_sec = float(db.query(func.avg(Answer.time_taken_seconds)).scalar() or 0)
+    avg_dur_sec = float(db.query(func.avg(Answer.time_taken_seconds)).join(Question).join(Interview).filter(Interview.user_id == user_id).scalar() or 0)
     avg_duration_minutes = int((avg_dur_sec * 5) / 60) # Approx total time per interview if 5 questions
     
     # Most Practiced Skill
-    skill_counts = db.query(Question.skill_area, func.count(Question.id).label("count")).group_by(Question.skill_area).order_by(func.count(Question.id).desc()).first()
+    skill_counts = db.query(Question.skill_area, func.count(Question.id).label("count")).join(Interview).filter(Interview.user_id == user_id).group_by(Question.skill_area).order_by(func.count(Question.id).desc()).first()
     most_practiced_skill = skill_counts.skill_area if skill_counts else "General"
     
     # Total Questions Answered
-    total_questions_answered = db.query(Answer).count()
+    total_questions_answered = db.query(Answer).join(Question).join(Interview).filter(Interview.user_id == user_id).count()
     
     # Current Streak
     current_streak = min(interviews_taken, 3) # Simplify logic for MVP
@@ -62,11 +62,11 @@ def get_dashboard_overview(db: Session) -> DashboardOverviewResponse:
         total_questions_answered=total_questions_answered
     )
 
-def get_dashboard_performance(db: Session) -> DashboardPerformanceResponse:
+def get_dashboard_performance(db: Session, user_id: str) -> DashboardPerformanceResponse:
     reports = (
         db.query(Report, Interview)
         .join(Interview, Interview.id == Report.interview_id)
-        .filter(Interview.status == "COMPLETED")
+        .filter(Interview.status == "COMPLETED", Interview.user_id == user_id)
         .order_by(Interview.started_at.asc())
         .all()
     )
@@ -92,8 +92,8 @@ def get_dashboard_performance(db: Session) -> DashboardPerformanceResponse:
         
     return DashboardPerformanceResponse(history=history)
 
-async def get_dashboard_intelligence(db: Session) -> DashboardIntelligenceResponse:
-    reports = db.query(Report).order_by(Report.created_at.desc()).limit(2).all()
+async def get_dashboard_intelligence(db: Session, user_id: str) -> DashboardIntelligenceResponse:
+    reports = db.query(Report).join(Interview).filter(Interview.user_id == user_id).order_by(Report.created_at.desc()).limit(2).all()
     if not reports:
         return DashboardIntelligenceResponse(
             strength_detected="Complete an interview to generate insights.",
@@ -126,10 +126,10 @@ async def get_dashboard_intelligence(db: Session) -> DashboardIntelligenceRespon
             career_tip="Practice the STAR method for behavioral answers."
         )
 
-def get_dashboard_recent(db: Session) -> DashboardRecentResponse:
+def get_dashboard_recent(db: Session, user_id: str) -> DashboardRecentResponse:
     interviews = (
         db.query(Interview)
-        .filter(Interview.status == "COMPLETED")
+        .filter(Interview.status == "COMPLETED", Interview.user_id == user_id)
         .order_by(Interview.started_at.desc())
         .limit(5)
         .all()

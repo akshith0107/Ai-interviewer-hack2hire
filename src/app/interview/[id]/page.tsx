@@ -8,6 +8,7 @@ import { useEffect, useState, useRef } from 'react';
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Background } from '@/components/ui/Background';
+import { fetchWithAuth } from '@/lib/api';
 
 interface CurrentQuestion {
   question_text: string;
@@ -91,7 +92,7 @@ export default function LiveInterviewRoomPage({ params }: { params: Promise<{ id
   const fetchNextQuestion = async () => {
     try {
       setError(null);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/interview/question`, {
+      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/interview/question`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: id })
@@ -145,7 +146,7 @@ export default function LiveInterviewRoomPage({ params }: { params: Promise<{ id
       console.log("Answer Submitted. Evaluating...");
       
       // Step 1: Evaluate Answer
-      const evalRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/interview/evaluate`, {
+      const evalRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/interview/evaluate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -169,7 +170,7 @@ export default function LiveInterviewRoomPage({ params }: { params: Promise<{ id
       console.log("Answer Evaluated:", evalData);
       
       // Step 2: Process Decision (Adaptive Difficulty + Round check)
-      const decRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/interview/decision`, {
+      const decRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/interview/decision`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -206,7 +207,7 @@ export default function LiveInterviewRoomPage({ params }: { params: Promise<{ id
 
   const handleEndEarly = async () => {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/interview/terminate`, {
+      await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/interview/terminate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: id, reason: "User ended manually" })

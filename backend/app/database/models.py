@@ -6,8 +6,9 @@ from app.database.base import Base
 class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=True)
+    email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=True)
+    password_hash = Column(String, nullable=False, server_default="placeholder")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     resumes = relationship("Resume", back_populates="user")

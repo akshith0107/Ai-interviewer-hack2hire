@@ -6,7 +6,7 @@ import os
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import resume, jd, interview, report, analysis, analytics, intelligence, dashboard
+from app.routers import resume, jd, interview, report, analysis, analytics, intelligence, dashboard, auth
 import uvicorn
 
 from app.database.db import verify_db_connection
@@ -22,9 +22,15 @@ async def lifespan(app: FastAPI):
     commit_hash = os.environ.get("RENDER_GIT_COMMIT", "Unknown Commit")
     print(f"DEPLOYED COMMIT HASH: {commit_hash}")
     print("ACTIVE AI SERVICES: Resume, JD, Question Gen, Evaluation, Report, Analytics, Intelligence, Dashboard")
+    print("JWT AUTHENTICATION: Initialized")
+    print("AUTH ROUTES: Registered")
     
     # Verify DB Connection
-    verify_db_connection()
+    try:
+        verify_db_connection()
+        print("DATABASE: Connected")
+    except Exception as e:
+        print(f"DATABASE CONNECTION FAILED: {e}")
     
     print("========================================\n")
     yield
@@ -46,6 +52,7 @@ app.add_middleware(
 )
 
 # Include Routers
+app.include_router(auth.router)
 app.include_router(resume.router)
 app.include_router(jd.router)
 app.include_router(interview.router)
