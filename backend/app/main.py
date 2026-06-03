@@ -1,3 +1,7 @@
+print("====================================")
+print("INTERVIEWIQ MAIN.PY LOADED")
+print("====================================")
+
 import os
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
@@ -15,6 +19,8 @@ async def lifespan(app: FastAPI):
     print("InterviewIQ Backend Starting Up...")
     print(f"FAST MODEL: {fast_model}")
     print(f"EVALUATION MODEL: {eval_model}")
+    commit_hash = os.environ.get("RENDER_GIT_COMMIT", "Unknown Commit")
+    print(f"DEPLOYED COMMIT HASH: {commit_hash}")
     print("ACTIVE AI SERVICES: Resume, JD, Question Gen, Evaluation, Report, Analytics, Intelligence, Dashboard")
     
     # Verify DB Connection
@@ -48,6 +54,12 @@ app.include_router(analysis.router)
 app.include_router(analytics.router)
 app.include_router(intelligence.router)
 app.include_router(dashboard.router)
+
+@app.get("/")
+def root():
+    return {
+        "message": "INTERVIEWIQ_BACKEND_RUNNING"
+    }
 
 @app.get("/health")
 def health_check():
