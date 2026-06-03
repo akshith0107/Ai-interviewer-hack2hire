@@ -9,6 +9,8 @@ class AggregatedScores(BaseModel):
     jd_match: int = Field(..., ge=0, le=100)
 
 class LLMReportData(BaseModel):
+    readiness_score: int = Field(..., ge=0, le=100)
+    hiring_recommendation: str
     executive_summary: str
     strengths: List[str]
     weaknesses: List[str]

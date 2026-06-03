@@ -5,6 +5,7 @@ import { BrainCircuit, Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
+import { Background } from '@/components/ui/Background';
 
 export default function ProcessingScreen({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -20,10 +21,8 @@ export default function ProcessingScreen({ params }: { params: Promise<{ id: str
   }, [id, router]);
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center relative overflow-hidden">
-      <div className="fixed inset-0 pointer-events-none z-0 bg-noise opacity-[0.03]"></div>
-      <div className="fixed inset-0 pointer-events-none z-0 bg-grid-pattern opacity-20"></div>
-      <div className="fixed inset-0 pointer-events-none z-0 bg-radial-glow"></div>
+    <div className="min-h-screen bg-transparent flex flex-col items-center justify-center relative overflow-hidden">
+      <Background />
 
       <div className="relative z-10 flex flex-col items-center text-center animate-in fade-in zoom-in duration-1000">
         <div className="w-24 h-24 relative mb-8 flex items-center justify-center">

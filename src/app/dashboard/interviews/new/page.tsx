@@ -6,23 +6,73 @@ import { Upload, FileText, Settings, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAnalysisStore } from '@/store/useAnalysisStore';
 
 export default function CreateInterviewPage() {
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState('');
+  const [jdText, setJdText] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const setAnalysisResult = useAnalysisStore(state => state.setAnalysisResult);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
       setFileName(e.target.files[0].name);
+      setErrorMsg('');
     }
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    if (!file) {
+      setErrorMsg("Please upload your resume before generating an interview.");
+      return;
+    }
+    if (!jdText.trim()) {
+      setErrorMsg("Please provide a job description.");
+      return;
+    }
+
+    setErrorMsg('');
     setIsUploading(true);
-    setTimeout(() => {
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/resume/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!uploadRes.ok) throw new Error("Resume upload failed. Please try again.");
+      
+      const uploadData = await uploadRes.json();
+      const extractedText = uploadData.extracted_text;
+
+      const analysisRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/analysis/pre-interview`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          resume_text: extractedText,
+          jd_text: jdText
+        })
+      });
+
+      if (!analysisRes.ok) throw new Error("Resume analysis failed. Please try again.");
+
+      const analysisData = await analysisRes.json();
+      setAnalysisResult(analysisData);
+      
       router.push('/dashboard/interviews/analysis');
-    }, 1500);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'An unexpected error occurred.');
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -79,8 +129,16 @@ export default function CreateInterviewPage() {
             <textarea 
               className="w-full flex-1 min-h-[200px] bg-white/5 border border-white/10 rounded-lg p-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/30 transition-all resize-none"
               placeholder="Paste the target job description here..."
+              value={jdText}
+              onChange={(e) => setJdText(e.target.value)}
             />
           </GlassCard>
+
+          {errorMsg && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg text-sm text-center">
+              {errorMsg}
+            </div>
+          )}
 
           <PremiumButton 
             variant="primary" 

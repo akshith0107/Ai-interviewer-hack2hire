@@ -12,7 +12,8 @@ UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 class AnalyzeRequest(BaseModel):
-    text: str
+    filename: str
+    extracted_text: str
 
 @router.post("/upload", response_model=dict)
 async def upload_resume(file: UploadFile = File(...)):
@@ -41,11 +42,13 @@ async def analyze_resume(request: AnalyzeRequest):
     """
     Analyzes raw resume text and extracts structured candidate profile using Groq.
     """
-    if not request.text.strip():
-        raise HTTPException(status_code=400, detail="Text cannot be empty.")
+    if not request.filename.strip():
+        raise HTTPException(status_code=400, detail="Filename cannot be empty.")
+    if not request.extracted_text.strip():
+        raise HTTPException(status_code=400, detail="Extracted text cannot be empty.")
         
     try:
-        profile = await analyze_resume_text(request.text)
+        profile = await analyze_resume_text(request.extracted_text)
         return profile
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to analyze resume: {str(e)}")

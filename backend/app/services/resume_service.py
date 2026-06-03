@@ -3,7 +3,7 @@ import pdfplumber
 import os
 from fastapi import UploadFile
 from app.schemas.resume import CandidateProfile
-from app.services.groq_service import analyze_text_to_json
+from app.services.groq_service import analyze_text_to_json, get_evaluation_model
 
 async def extract_text_from_pdf(file_path: str) -> str:
     """
@@ -37,11 +37,28 @@ async def analyze_resume_text(text: str) -> CandidateProfile:
     Sends the raw resume text to Groq API to extract structured fields.
     """
     system_prompt = (
-        "You are an expert technical recruiter AI. Your task is to extract detailed information "
-        "from a candidate's resume and structure it into a JSON object."
+        "You are a Senior Technical Recruiter with 15 years of hiring experience.\n"
+        "Analyze the candidate resume.\n"
+        "Extract:\n"
+        "- Candidate Name\n"
+        "- Technical Skills\n"
+        "- Soft Skills\n"
+        "- Projects\n"
+        "- Experience\n"
+        "- Education\n"
+        "- Experience Level\n\n"
+        "Generate:\n"
+        "- Professional Summary\n"
+        "- Top Strengths\n"
+        "- Missing Skills\n"
+        "- Interview Focus Areas\n\n"
+        "Return ONLY valid JSON.\n"
+        "No markdown.\n"
+        "No explanations.\n"
+        "No text outside JSON."
     )
     
     prompt = f"Please analyze the following resume text and extract the candidate profile details:\n\n{text}"
     
-    profile = await analyze_text_to_json(prompt, system_prompt, CandidateProfile)
+    profile = await analyze_text_to_json(prompt, system_prompt, CandidateProfile, model_name=get_evaluation_model())
     return profile

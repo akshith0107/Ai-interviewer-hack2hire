@@ -55,7 +55,7 @@ export default function SettingsPage() {
 
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold tracking-wider text-white/50 uppercase">Current Role</label>
-                <input type="text" defaultValue="Sr. Product Designer" className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-white/30" />
+                <input type="text" placeholder="e.g. Software Engineer" className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-white/30" />
               </div>
 
               <div className="pt-4 flex justify-end">

@@ -1,17 +1,25 @@
 'use client';
 
-import { useResultsStore } from '@/store/useResultsStore';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
-export function CompetencyRadarChart() {
-  const scores = useResultsStore((state) => state.competencyScores);
+interface CompetencyRadarChartProps {
+  scores: {
+    technical: number;
+    communication: number;
+    behavioral: number;
+    time_management: number;
+    jd_match: number;
+  }
+}
+
+export function CompetencyRadarChart({ scores }: CompetencyRadarChartProps) {
   
   const data = [
-    { subject: 'Strategy', A: scores.strategy, fullMark: 100 },
     { subject: 'Technical', A: scores.technical, fullMark: 100 },
-    { subject: 'Leadership', A: scores.leadership, fullMark: 100 },
     { subject: 'Communication', A: scores.communication, fullMark: 100 },
-    { subject: 'Problem Solving', A: scores.problemSolving, fullMark: 100 },
+    { subject: 'Behavioral', A: scores.behavioral, fullMark: 100 },
+    { subject: 'Time Mgmt', A: scores.time_management, fullMark: 100 },
+    { subject: 'JD Match', A: scores.jd_match, fullMark: 100 },
   ];
 
   return (

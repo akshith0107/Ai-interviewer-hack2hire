@@ -1,11 +1,42 @@
+'use client';
+
 import { GlassCard } from '@/components/ui/GlassCard';
 import { PremiumButton } from '@/components/ui/PremiumButton';
 import { ArrowRight, MonitorSmartphone } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Starfield } from '@/components/ui/starfield-1';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setErrorMsg('Please enter both email and password.');
+      return;
+    }
+    if (!email.includes('@')) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+    
+    setErrorMsg('');
+    setIsLoading(true);
+    
+    // Simulate network delay for loading state
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 1000);
+  };
   return (
     <div className="min-h-screen bg-black flex flex-col relative overflow-hidden">
+      <Starfield speed={0.5} quantity={400} starColor="rgba(255, 255, 255, 0.7)" />
       <div className="fixed inset-0 pointer-events-none z-0 bg-noise opacity-[0.03]"></div>
       <div className="fixed inset-0 pointer-events-none z-0 bg-grid-pattern opacity-20"></div>
       <div className="fixed inset-0 pointer-events-none z-0 bg-radial-glow"></div>
@@ -32,12 +63,14 @@ export default function LoginPage() {
               <p className="text-sm text-white/50">Enter your details to access your intelligence dashboard.</p>
             </div>
 
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleLogin}>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold tracking-wider text-white/50 uppercase">Email</label>
                 <input 
                   type="email" 
                   placeholder="name@company.com" 
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/30 transition-all"
                 />
               </div>
@@ -50,15 +83,24 @@ export default function LoginPage() {
                 <input 
                   type="password" 
                   placeholder="••••••••" 
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/30 transition-all"
                 />
               </div>
 
-              <Link href="/dashboard" className="block pt-2">
-                <PremiumButton variant="primary" className="w-full" type="button">
-                  CONTINUE <ArrowRight className="w-4 h-4 ml-2" />
+              {errorMsg && (
+                <div className="text-red-400 text-xs text-center py-1 bg-red-400/10 rounded border border-red-400/20">
+                  {errorMsg}
+                </div>
+              )}
+
+              <div className="pt-2">
+                <PremiumButton variant="primary" className="w-full" type="submit" isLoading={isLoading}>
+                  {isLoading ? 'SIGNING IN...' : 'CONTINUE'}
+                  {!isLoading && <ArrowRight className="w-4 h-4 ml-2" />}
                 </PremiumButton>
-              </Link>
+              </div>
             </form>
 
             <div className="my-6 flex items-center">

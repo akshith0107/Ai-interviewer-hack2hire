@@ -1,17 +1,31 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
+class LLMEvaluationRaw(BaseModel):
+    accuracy: int = Field(..., ge=0, le=100)
+    clarity: int = Field(..., ge=0, le=100)
+    depth: int = Field(..., ge=0, le=100)
+    relevance: int = Field(..., ge=0, le=100)
+    communication: int = Field(..., ge=0, le=100)
+    time_efficiency: int = Field(..., ge=0, le=100)
+    overall_score: int = Field(..., ge=0, le=100)
+    strengths: List[str]
+    weaknesses: List[str]
+    feedback: str
+
 class EvaluationScores(BaseModel):
-    accuracy: int = Field(..., ge=0, le=100, description="Score for technical or factual accuracy of the answer")
-    clarity: int = Field(..., ge=0, le=100, description="Score for how clear and understandable the answer was")
-    depth: int = Field(..., ge=0, le=100, description="Score for the depth of knowledge shown")
-    relevance: int = Field(..., ge=0, le=100, description="Score for staying on topic and answering the actual question")
-    communication: int = Field(..., ge=0, le=100, description="Score for overall communication skills, confidence, and structure")
-    overall_score: int = Field(..., ge=0, le=100, description="Normalized overall score based on weighted sub-scores")
+    accuracy: int = Field(..., ge=0, le=100)
+    clarity: int = Field(..., ge=0, le=100)
+    depth: int = Field(..., ge=0, le=100)
+    relevance: int = Field(..., ge=0, le=100)
+    communication: int = Field(..., ge=0, le=100)
+    time_efficiency: int = Field(..., ge=0, le=100)
+    overall_score: int = Field(..., ge=0, le=100)
 
 class EvaluationFeedback(BaseModel):
-    detailed_feedback: str = Field(..., description="Comprehensive feedback paragraph explaining what the candidate did well and poorly.")
-    improvement_suggestions: List[str] = Field(..., description="Actionable bullet points for how the candidate can improve next time.")
+    feedback: str
+    strengths: List[str]
+    weaknesses: List[str]
 
 class EvaluationResponse(BaseModel):
     scores: EvaluationScores

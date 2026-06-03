@@ -1,45 +1,31 @@
 import os
-from typing import Dict
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
+from app.database.models import Report, Interview
 from app.schemas.report import RecruiterReport, AggregatedScores, LLMReportData
-from app.schemas.interview import InterviewState
 from app.services.state_manager import get_session
-from app.services.groq_service import analyze_text_to_json
+from app.services.groq_service import analyze_text_to_json, get_evaluation_model
 
-# In-memory store for generated reports
-_reports: Dict[str, RecruiterReport] = {}
-
-def get_report(session_id: str) -> RecruiterReport:
-    if session_id not in _reports:
+def get_report(session_id: str, db: Session) -> RecruiterReport:
+    report_db = db.query(Report).filter(Report.interview_id == session_id).first()
+    if not report_db:
         raise HTTPException(status_code=404, detail="Report not found for this session.")
-    return _reports[session_id]
-
-def calculate_readiness_and_recommendation(overall_avg: int) -> tuple[int, str]:
-    """
-    Deterministic rule engine for readiness score and hiring recommendation.
-    """
-    readiness_score = max(0, min(100, overall_avg)) # Clamp 0-100
-    
-    if readiness_score >= 85:
-        recommendation = "Strong Hire"
-    elif readiness_score >= 70:
-        recommendation = "Hire"
-    elif readiness_score >= 50:
-        recommendation = "Borderline"
-    else:
-        recommendation = "Needs Improvement"
         
-    return readiness_score, recommendation
+    return RecruiterReport(
+        session_id=session_id,
+        aggregated_scores=AggregatedScores(technical=50, communication=50, behavioral=50, time_management=50, jd_match=50), # DB fallback
+        readiness_score=report_db.readiness_score or 0,
+        hiring_recommendation=report_db.recommendation or "",
+        executive_summary=report_db.summary or "",
+        strengths=report_db.strengths or [],
+        weaknesses=report_db.weaknesses or [],
+        improvement_areas=[],
+        personalized_roadmap=report_db.roadmap or ""
+    )
 
-async def generate_recruiter_report(session_id: str) -> RecruiterReport:
-    """
-    Orchestrates report generation: Math for scores, LLM for qualitative text.
-    """
-    state = get_session(session_id)
+async def generate_recruiter_report(session_id: str, db: Session) -> RecruiterReport:
+    state = get_session(db, session_id)
     
-    # 1. Deterministic Aggregation (Simplified for MVP, using score_history)
-    # Ideally we'd average specific dimensions from specific questions.
-    # For now, we simulate diverse sub-scores based on the global average to guarantee 0-100 integers.
     avg_score = sum(state.score_history) / len(state.score_history) if state.score_history else 50
     
     scores = AggregatedScores(
@@ -50,40 +36,57 @@ async def generate_recruiter_report(session_id: str) -> RecruiterReport:
         jd_match=int(min(100, avg_score))
     )
     
-    readiness, recommendation = calculate_readiness_and_recommendation(int(avg_score))
-    
-    # 2. LLM Qualitative Generation
     system_prompt = (
-        "You are an expert Executive Recruiter writing a final candidate report. "
-        "Analyze the provided interview context (resume, job description, and Q&A history) "
-        "and generate a highly professional executive summary, a list of strengths, weaknesses, "
-        "improvement areas, and a personalized growth roadmap. "
-        "Strictly output valid JSON matching the schema."
+        "You are a Senior Engineering Hiring Committee.\n"
+        "Determine interview readiness.\n"
+        "Evaluate:\n"
+        "- Technical Knowledge\n"
+        "- Problem Solving\n"
+        "- Communication\n"
+        "- Consistency\n"
+        "- Adaptability\n"
+        "- Time Management\n\n"
+        "Generate:\n"
+        "- Readiness Score (0-100)\n"
+        "- Hiring Recommendation\n"
+        "- Executive Summary\n"
+        "- Strengths\n"
+        "- Weaknesses\n"
+        "- Improvement Areas\n"
+        "- Personalized Roadmap\n\n"
+        "Categories:\n"
+        "90-100: Highly Recommended\n"
+        "75-89: Interview Ready\n"
+        "60-74: Needs Improvement\n"
+        "0-59: Not Ready\n\n"
+        "Return ONLY JSON.\n"
+        "No markdown.\n"
+        "No explanations."
     )
     
     history_str = ""
     for idx, h in enumerate(state.history):
         history_str += f"Q{idx+1}: {h.question}\nA{idx+1}: {h.answer}\n\n"
         
+    skills = state.context.candidate_profile.skills if state.context.candidate_profile else []
+    
     prompt = f"""
     Context:
-    Resume Skills: {', '.join(state.context.candidate_profile.skills) if state.context.candidate_profile else 'None'}
+    Resume Skills: {', '.join(skills) if skills else 'None'}
     Target Role: {state.context.jd_analysis.role if state.context.jd_analysis else 'None'}
-    
-    Final Readiness Score: {readiness} ({recommendation})
     
     Interview Transcript:
     {history_str}
     """
     
     try:
-        llm_data = await analyze_text_to_json(prompt, system_prompt, LLMReportData)
+        llm_data = await analyze_text_to_json(prompt, system_prompt, LLMReportData, model_name=get_evaluation_model())
         
         report = RecruiterReport(
             session_id=session_id,
             aggregated_scores=scores,
-            readiness_score=readiness,
-            hiring_recommendation=recommendation,
+            readiness_score=llm_data.readiness_score,
+            hiring_recommendation=llm_data.hiring_recommendation,
             executive_summary=llm_data.executive_summary,
             strengths=llm_data.strengths,
             weaknesses=llm_data.weaknesses,
@@ -91,7 +94,6 @@ async def generate_recruiter_report(session_id: str) -> RecruiterReport:
             personalized_roadmap=llm_data.personalized_roadmap
         )
         
-        _reports[session_id] = report
         return report
         
     except Exception as e:

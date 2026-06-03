@@ -1,13 +1,10 @@
 import { Sidebar } from './Sidebar';
+import { Background } from '@/components/ui/Background';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-black flex">
-      {/* Background patterns */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-noise opacity-[0.03]"></div>
-      <div className="fixed inset-0 pointer-events-none z-0 bg-grid-pattern opacity-20"></div>
-      <div className="fixed inset-0 pointer-events-none z-0 bg-radial-glow"></div>
-
+    <div className="min-h-screen bg-transparent flex relative">
+      <Background />
       {/* Main Content Area */}
       <div className="relative z-10 flex w-full max-w-[1600px] mx-auto overflow-hidden">
         <Sidebar />

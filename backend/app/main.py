@@ -1,12 +1,33 @@
+import os
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import resume, jd, interview, report
+from app.routers import resume, jd, interview, report, analysis, analytics, intelligence, dashboard
 import uvicorn
+
+from app.database.db import verify_db_connection
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    fast_model = os.getenv("GROQ_FAST_MODEL", "openai/gpt-oss-20b")
+    eval_model = os.getenv("GROQ_EVALUATION_MODEL", "openai/gpt-oss-120b")
+    print("\n========================================")
+    print("InterviewIQ Backend Starting Up...")
+    print(f"FAST MODEL: {fast_model}")
+    print(f"EVALUATION MODEL: {eval_model}")
+    print("ACTIVE AI SERVICES: Resume, JD, Question Gen, Evaluation, Report, Analytics, Intelligence, Dashboard")
+    
+    # Verify DB Connection
+    verify_db_connection()
+    
+    print("========================================\n")
+    yield
 
 app = FastAPI(
     title="InterviewIQ Backend API",
     description="Backend services for Phase 1 InterviewIQ Intelligence Layers.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Configure CORS for frontend access
@@ -23,6 +44,10 @@ app.include_router(resume.router)
 app.include_router(jd.router)
 app.include_router(interview.router)
 app.include_router(report.router)
+app.include_router(analysis.router)
+app.include_router(analytics.router)
+app.include_router(intelligence.router)
+app.include_router(dashboard.router)
 
 @app.get("/health")
 def health_check():
