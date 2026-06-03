@@ -5,6 +5,8 @@ import { PremiumButton } from '@/components/ui/PremiumButton';
 import { ArrowRight, User, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { fetchWithAuth } from '@/lib/api';
+import { useUserStore } from '@/store/useUserStore';
 
 export default function OnboardingStep1() {
   const router = useRouter();
@@ -13,7 +15,9 @@ export default function OnboardingStep1() {
   const [role, setRole] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { profile, setProfile } = useUserStore();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !role.trim()) {
       setErrorMsg('Please fill out all required fields.');
@@ -21,10 +25,29 @@ export default function OnboardingStep1() {
     }
     setErrorMsg('');
     setIsLoading(true);
-    // Simulate API delay
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 1500);
+    
+    try {
+      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: name,
+          target_role: role
+        })
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setProfile(updated);
+        router.push('/dashboard');
+      } else {
+        setErrorMsg('Failed to update profile.');
+      }
+    } catch (e) {
+      setErrorMsg('Network error.');
+    } finally {
+      setIsLoading(false);
+    }
   };
   return (
     <div className="w-full max-w-[500px] animate-in fade-in slide-in-from-bottom-8 duration-700">

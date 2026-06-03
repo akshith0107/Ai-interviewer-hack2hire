@@ -9,7 +9,19 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=True)
     password_hash = Column(String, nullable=False, server_default="placeholder")
+    phone_number = Column(String, nullable=True)
+    profile_image_url = Column(String, nullable=True)
+    college = Column(String, nullable=True)
+    degree = Column(String, nullable=True)
+    graduation_year = Column(Integer, nullable=True)
+    target_role = Column(String, nullable=True)
+    experience_level = Column(String, nullable=True)
+    bio = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    @property
+    def full_name(self):
+        return self.name
 
     resumes = relationship("Resume", back_populates="user")
     jds = relationship("JobDescription", back_populates="user")

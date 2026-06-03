@@ -5,19 +5,8 @@ import { Background } from '@/components/ui/Background';
 import { Menu } from 'lucide-react';
 import { useUIStore } from '@/store/useUIStore';
 
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { setMobileMenuOpen } = useUIStore();
-  const router = useRouter();
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-    }
-  }, [router]);
 
   return (
     <div className="min-h-screen bg-transparent flex flex-col md:flex-row relative">

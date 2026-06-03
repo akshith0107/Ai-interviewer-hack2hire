@@ -2,11 +2,15 @@ import { create } from 'zustand';
 
 interface UserProfile {
   id: string;
-  name: string;
+  full_name: string;
   email: string;
-  role: string;
-  tier: string;
-  avatarUrl: string;
+  target_role: string | null;
+  phone_number?: string | null;
+  college?: string | null;
+  degree?: string | null;
+  graduation_year?: number | null;
+  experience_level?: string | null;
+  bio?: string | null;
 }
 
 interface UserState {

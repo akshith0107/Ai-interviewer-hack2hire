@@ -148,7 +148,7 @@ export default function LoginPage() {
             </div>
 
             <div className="text-center text-xs text-white/50">
-              Don&apos;t have an account? <Link href="/onboarding/step1" className="text-white font-medium hover:underline">Sign up</Link>
+              Don&apos;t have an account? <Link href="/signup" className="text-white font-medium hover:underline">Sign up</Link>
             </div>
           </GlassCard>
         </div>

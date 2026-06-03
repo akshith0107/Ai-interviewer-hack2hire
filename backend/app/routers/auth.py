@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 import uuid
 
 from app.database.session import get_db
 from app.database.models import User
-from app.schemas.auth import UserSignup, UserLogin, TokenResponse, UserResponse
+from app.schemas.auth import UserSignup, UserLogin, TokenResponse, UserResponse, UserProfileUpdate
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.deps import get_current_user
 
@@ -37,9 +38,9 @@ def signup(user_in: UserSignup, db: Session = Depends(get_db)):
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/login", response_model=TokenResponse)
-def login(user_in: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == user_in.email).first()
-    if not user or not verify_password(user_in.password, user.password_hash):
+def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
+    user = db.query(User).filter(User.email == form_data.username).first()
+    if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=401,
             detail="Incorrect email or password",
@@ -51,8 +52,27 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
-    return {
-        "id": current_user.id,
-        "email": current_user.email,
-        "full_name": current_user.name
-    }
+    return current_user
+
+@router.put("/profile", response_model=UserResponse)
+def update_profile(profile_in: UserProfileUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if profile_in.full_name is not None:
+        current_user.name = profile_in.full_name
+    if profile_in.phone_number is not None:
+        current_user.phone_number = profile_in.phone_number
+    if profile_in.college is not None:
+        current_user.college = profile_in.college
+    if profile_in.degree is not None:
+        current_user.degree = profile_in.degree
+    if profile_in.graduation_year is not None:
+        current_user.graduation_year = profile_in.graduation_year
+    if profile_in.target_role is not None:
+        current_user.target_role = profile_in.target_role
+    if profile_in.experience_level is not None:
+        current_user.experience_level = profile_in.experience_level
+    if profile_in.bio is not None:
+        current_user.bio = profile_in.bio
+        
+    db.commit()
+    db.refresh(current_user)
+    return current_user

@@ -14,6 +14,10 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
       }
   }
 
+  console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+  console.log("Request URL:", url);
+  console.log("Request Headers:", Object.fromEntries(headers.entries()));
+
   const res = await fetch(url, { ...options, headers });
   
   if (res.status === 401) {

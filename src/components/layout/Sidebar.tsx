@@ -102,13 +102,17 @@ export function Sidebar() {
 
         {profile && (
           <div className={cn("px-6 py-4 flex items-center", isSidebarCollapsed && !isMobileMenuOpen ? "justify-center px-0" : "space-x-3")}>
-            <div className="w-10 h-10 rounded-full bg-white/10 shrink-0 overflow-hidden border border-white/20">
-              <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-white/10 flex-shrink-0 border border-white/10 relative">
+              <img src={profile.profile_image_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback'} alt={profile.full_name || 'User'} className="w-full h-full object-cover" />
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background"></div>
             </div>
             {showLabels && (
-              <div className="truncate">
-                <div className="text-sm font-medium text-white truncate">{profile.name}</div>
-                <div className="text-xs text-white/50 truncate">{profile.tier}</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-white truncate">{profile.full_name || 'User'}</div>
+                <div className="text-xs text-white/50 truncate flex items-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/30 mr-1.5"></span>
+                  {profile.target_role || 'Free Tier'}
+                </div>
               </div>
             )}
           </div>

@@ -18,6 +18,24 @@ class UserResponse(BaseModel):
     id: str
     email: str
     full_name: Optional[str]
+    phone_number: Optional[str] = None
+    profile_image_url: Optional[str] = None
+    college: Optional[str] = None
+    degree: Optional[str] = None
+    graduation_year: Optional[int] = None
+    target_role: Optional[str] = None
+    experience_level: Optional[str] = None
+    bio: Optional[str] = None
     
     class Config:
         from_attributes = True
+
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    college: Optional[str] = None
+    degree: Optional[str] = None
+    graduation_year: Optional[int] = None
+    target_role: Optional[str] = None
+    experience_level: Optional[str] = None
+    bio: Optional[str] = None
